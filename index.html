@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lian’s MP3 Converter</title>
+  <style>
+    body {
+      background-color: #1e1e2f;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    h1 {
+      color: #a371f7;
+    }
+    button {
+      background-color: #a371f7;
+      color: #fff;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 10px;
+    }
+    button:hover {
+      background-color: #8a5adb;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lian’s MP3 Converter</h1>
+  <input type="file" id="videoInput" accept="video/*">
+  <button id="convertButton">Convert</button>
+  <a id="downloadButton" class="hidden">Download MP3</a>
+  <button id="pitchButton" class="hidden" onclick="window.location.href='https://vocalremover.org/pitch'">Pitch</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.0/dist/ffmpeg.min.js"></script>
+  <script>
+    const videoInput = document.getElementById('videoInput');
+    const convertButton = document.getElementById('convertButton');
+    const downloadButton = document.getElementById('downloadButton');
+    const pitchButton = document.getElementById('pitchButton');
+
+    convertButton.addEventListener('click', async () => {
+      if (!videoInput.files[0]) {
+        alert('Bitte eine Videodatei auswählen!');
+        return;
+      }
+
+      const file = videoInput.files[0];
+      const { createFFmpeg, fetchFile } = FFmpeg;
+      const ffmpeg = createFFmpeg({ log: true });
+
+      convertButton.textContent = 'Wird konvertiert...';
+      convertButton.disabled = true;
+
+      try {
+        await ffmpeg.load();
+        ffmpeg.FS('writeFile', file.name, await fetchFile(file));
+
+        await ffmpeg.run('-i', file.name, 'output.mp3');
+        const mp3Data = ffmpeg.FS('readFile', 'output.mp3');
+
+        const mp3Blob = new Blob([mp3Data.buffer], { type: 'audio/mpeg' });
+        const mp3Url = URL.createObjectURL(mp3Blob);
+
+        downloadButton.href = mp3Url;
+        downloadButton.download = 'converted.mp3';
+        downloadButton.classList.remove('hidden');
+        pitchButton.classList.remove('hidden');
+      } catch (error) {
+        alert('Fehler bei der Konvertierung: ' + error.message);
+      } finally {
+        convertButton.textContent = 'Convert';
+        convertButton.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
